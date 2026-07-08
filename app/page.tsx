@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
 interface Scores {
   content: number;
@@ -75,6 +75,54 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<OptimizationResult | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+      setError('请上传 PDF 文件（暂不支持 Word）');
+      return;
+    }
+
+    setUploading(true);
+    setError('');
+
+    try {
+      const text = await extractTextFromPDF(file);
+      setResume(text);
+      setError('');
+    } catch (err) {
+      console.error('PDF 解析失败:', err);
+      setError('PDF 解析失败，请尝试复制粘贴文本');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const extractTextFromPDF = async (file: File): Promise<string> => {
+    // 动态导入 pdfjs-dist（只在客户端运行）
+    const pdfjsLib = await import('pdfjs-dist');
+    // 设置 worker
+    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+    let fullText = '';
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items
+        .map((item: any) => item.str)
+        .join(' ');
+      fullText += pageText + '\n';
+    }
+
+    return fullText.trim();
+  };
 
   const handleSubmit = async () => {
     if (!resume.trim() || resume.trim().length < 50) {
@@ -145,12 +193,28 @@ export default function Home() {
                 <label className="block text-sm font-medium text-gray-700">
                   简历内容
                 </label>
-                <button
-                  onClick={fillSample}
-                  className="text-sm text-blue-600 hover:text-blue-700"
-                >
-                  📝 填入示例简历
-                </button>
+                <div className="flex gap-3 text-sm">
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="text-blue-600 hover:text-blue-700 disabled:text-gray-400"
+                  >
+                    {uploading ? '⏳ 解析中...' : '📎 上传 PDF'}
+                  </button>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="application/pdf"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                  />
+                  <button
+                    onClick={fillSample}
+                    className="text-blue-600 hover:text-blue-700"
+                  >
+                    📝 填入示例
+                  </button>
+                </div>
               </div>
               <textarea
                 value={resume}
