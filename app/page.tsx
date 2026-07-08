@@ -105,8 +105,11 @@ export default function Home() {
   const extractTextFromPDF = async (file: File): Promise<string> => {
     // 动态导入 pdfjs-dist（只在客户端运行）
     const pdfjsLib = await import('pdfjs-dist');
-    // 设置 worker
-    pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+    // 设置 worker - 从 node_modules 本地加载
+    pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+      'pdfjs-dist/build/pdf.worker.min.mjs',
+      import.meta.url
+    ).toString();
 
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
