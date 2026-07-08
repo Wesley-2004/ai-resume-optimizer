@@ -92,7 +92,8 @@ export default function Home() {
 
     try {
       const text = await extractTextFromPDF(file);
-      setResume(text);
+      // 不直接显示文字，只用 [UPLOADED] 标识，实际文字藏在 state 里
+      setResume('[UPLOADED]' + text);
       setError('');
     } catch (err) {
       console.error('PDF 解析失败:', err);
@@ -219,15 +220,39 @@ export default function Home() {
                   </button>
                 </div>
               </div>
-              <textarea
-                value={resume}
-                onChange={(e) => setResume(e.target.value)}
-                placeholder="把你的简历内容粘贴到这里...&#10;&#10;包括：个人信息、教育背景、工作经历、项目经验、技能等"
-                className="w-full h-80 p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
-              />
-              <div className="text-right text-xs text-gray-500 mt-1">
-                {resume.length} 字
-              </div>
+              {resume && !resume.startsWith('[UPLOADED]') ? (
+                <textarea
+                  value={resume}
+                  onChange={(e) => setResume(e.target.value)}
+                  placeholder="把你的简历内容粘贴到这里...&#10;&#10;包括：个人信息、教育背景、工作经历、项目经验、技能等"
+                  className="w-full h-80 p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                />
+              ) : resume.startsWith('[UPLOADED]') ? (
+                <div className="w-full h-80 p-6 border-2 border-dashed border-green-300 bg-green-50 rounded-lg flex flex-col items-center justify-center">
+                  <div className="text-5xl mb-3">✅</div>
+                  <div className="text-lg font-semibold text-green-800 mb-2">
+                    简历已成功上传
+                  </div>
+                  <div className="text-sm text-green-700">
+                    共解析 {resume.replace('[UPLOADED]', '').length} 字
+                  </div>
+                  <div className="text-xs text-green-600 mt-2">
+                    点击下方"开始优化"按钮即可获得 AI 评分与建议
+                  </div>
+                </div>
+              ) : (
+                <textarea
+                  value=""
+                  onChange={(e) => setResume(e.target.value)}
+                  placeholder="把你的简历内容粘贴到这里...&#10;&#10;包括：个人信息、教育背景、工作经历、项目经验、技能等"
+                  className="w-full h-80 p-4 border border-gray-300 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                />
+              )}
+              {!resume.startsWith('[UPLOADED]') && (
+                <div className="text-right text-xs text-gray-500 mt-1">
+                  {resume.length} 字
+                </div>
+              )}
             </div>
 
             <button
